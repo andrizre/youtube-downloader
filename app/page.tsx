@@ -49,6 +49,8 @@ interface Details {
     size: number;
     sizeText: string;
     mimeType: string;
+    codec: string;
+    bitrate: number;
   }[];
   subtitles: { code: string; url: string }[];
   related: {
@@ -419,10 +421,20 @@ export default function Home() {
                 </p>
                 <ul className="flex flex-col gap-3">
                   {data.audios.map((a) => (
-                    <li key={`${a.extension}-${a.size}`} className="flex flex-col gap-2">
+                    <li key={`${a.extension}-${a.codec}-${a.bitrate}-${a.size}`} className="flex flex-col gap-2">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-mono text-xs text-zinc-300 uppercase">.{a.extension}</span>
                         <span className="font-mono text-[11px] text-zinc-600">{a.sizeText}</span>
+                        {a.codec && (
+                          <span className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">
+                            {a.codec}
+                          </span>
+                        )}
+                        {a.bitrate > 0 && (
+                          <span className="font-mono text-[11px] text-zinc-700">
+                            {a.bitrate >= 10000 ? `${Math.round(a.bitrate / 1000)}kbps` : `${a.bitrate}kbps`}
+                          </span>
+                        )}
                         <a
                           href={a.url}
                           download
@@ -589,7 +601,7 @@ export default function Home() {
                 kenapa kualitas sama tapi ukurannya beda?
               </summary>
               <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500">
-                walau sama-sama 720p, isinya bisa beda codec (avc1, vp9, av1 — makin modern makin kecil ukurannya untuk ketajaman yang setara), beda fps (30 vs 60), atau ada yang sudah menggabung audio sehingga lebih besar. semua daftar di sini mp4 — bandingkan saja label codec, fps, dan penanda bersuara di tiap baris.
+                walau sama-sama 720p, isinya bisa beda codec (avc1, vp9, av1 — makin modern makin kecil ukurannya untuk ketajaman yang setara), beda fps (30 vs 60), atau ada yang sudah menggabung audio sehingga lebih besar. semua daftar di sini mp4 — bandingkan saja label codec, fps, dan penanda bersuara di tiap baris. hal yang sama berlaku untuk trek audio: ekstensi boleh sama tapi bitrate/codec-nya beda, dan entri yang benar-benar kembar sudah dibuang otomatis.
               </p>
             </details>
             <details className="group rounded-xl bg-white/[0.03] px-4 py-3">

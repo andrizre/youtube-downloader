@@ -67,6 +67,8 @@ export interface AudioOption {
   size: number;
   sizeText: string;
   mimeType: string;
+  codec: string;
+  bitrate: number;
 }
 
 export interface SubtitleOption {
@@ -262,6 +264,7 @@ async function fetchDetails(
         (a.codec < b.codec ? -1 : a.codec > b.codec ? 1 : 0),
     );
 
+  const seenAudio = new Set<string>();
   const audios: AudioOption[] = (rawAudios as Record<string, unknown>[])
     .filter((f) => typeof f.url === "string")
     .map((f) => ({
@@ -270,7 +273,17 @@ async function fetchDetails(
       size: num(f.size),
       sizeText: str(f.sizeText),
       mimeType: str(f.mimeType),
+      codec: shortCodec(f.codec ?? f.codecs, str(f.mimeType)),
+      bitrate: num(f.bitrate),
     }))
+    // Vendor kadang mengembalikan trek yang sama berulang: buang yang
+    // url-nya identik atau tak terbedakan (ekstensi+ukuran+codec sama).
+    .filter((a) => {
+      const key = `${a.url}||${a.extension}|${a.size}|${a.codec}`;
+      if (seenAudio.has(key)) return false;
+      seenAudio.add(key);
+      return true;
+    })
     .sort((a, b) => b.size - a.size);
 
   const subsNode =
