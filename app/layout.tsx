@@ -13,17 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YouTube Downloader",
-  description: "Unduh video MP4 dan audio MP3 dari link YouTube.",
+  title: "unduh — simpan video & audio youtube",
+  description: "tempel tautan youtube, pratinjau, lalu simpan mp4 atau mp3. tanpa iklan, tanpa ribet.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} h-full dark antialiased`}>
+      <body className="min-h-full bg-[#09090b] text-zinc-100 flex flex-col">{children}</body>
     </html>
   );
 }

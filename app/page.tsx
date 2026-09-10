@@ -93,7 +93,7 @@ function biggest(thumbs: Thumb[]): string {
 
 function formatCount(n: number): string {
   if (!n) return "0";
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} M`;
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} jt`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)} rb`;
   return String(n);
@@ -271,58 +271,64 @@ export default function Home() {
           minute: "2-digit",
         })
       : "";
+  const metaLine = data
+    ? [
+        formatDuration(data.meta.lengthSeconds),
+        `${formatCount(data.meta.viewCount)} ditonton`,
+        data.meta.publishedTimeText,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
-      {/* Hero */}
-      <header className="flex flex-col gap-2">
-        <p className="text-xs font-semibold tracking-widest text-red-600 uppercase">
-          YouTube Downloader
+    <div className="flex min-h-full flex-1 flex-col">
+      {/* top bar */}
+      <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-6">
+        <p className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-100" />
+          unduh
         </p>
-        <h1 className="text-3xl font-bold text-balance">
-          Tempel link, lihat isinya, baru unduh.
-        </h1>
-        <p className="max-w-2xl text-sm opacity-70">
-          Pratinjau metadata, channel, dan semua pilihan kualitas (dengan ukuran
-          file + penanda bersuara) sebelum mengunduh MP4, audio, atau subtitle.
-        </p>
-        <div className="flex flex-wrap gap-1.5 pt-1 text-[11px]">
-          {["Pratinjau 4K–144p", "Ukuran file", "Audio & subtitle", "Video terkait", "Riwayat lokal"].map(
-            (c) => (
-              <span
-                key={c}
-                className="rounded-full border border-zinc-300 px-2.5 py-1 opacity-80 dark:border-zinc-700"
-              >
-                {c}
-              </span>
-            ),
-          )}
-        </div>
+        <p className="text-xs text-zinc-600">youtube · mp4 / mp3</p>
       </header>
 
-      {/* Converter */}
-      <section className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleDownload();
-            }}
-            placeholder="https://www.youtube.com/watch?v=…  /  youtu.be/…  /  /shorts/…"
-            spellCheck={false}
-            className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-red-500 dark:border-zinc-700"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handlePaste}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-            >
-              Paste
-            </button>
-            {url && (
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 pt-14 pb-20 sm:pt-20">
+        {!data && !loading && (
+          <div className="rise mb-8 text-center">
+            <h1 className="text-balance text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
+              simpan yang kamu suka.
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
+              tempel tautan youtube di bawah, pratinjau dulu, lalu unduh. tanpa iklan, tanpa bertele-tele.
+            </p>
+          </div>
+        )}
+
+        {/* input */}
+        <div className="rise rise-1">
+          <div
+            className={`flex items-center gap-1.5 rounded-2xl border bg-white/[0.04] p-2 pl-4 transition-colors ${
+              showInvalidHint
+                ? "border-red-500/40"
+                : "border-white/10 focus-within:border-white/25"
+            }`}
+          >
+            <span className="shrink-0 text-zinc-600">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+            </span>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleDownload();
+              }}
+              placeholder="tempel tautan youtube di sini…"
+              spellCheck={false}
+              autoFocus
+              className="min-w-0 flex-1 bg-transparent py-2 text-[15px] text-zinc-100 outline-none"
+            />
+            {url ? (
               <button
                 type="button"
                 onClick={() => {
@@ -331,292 +337,302 @@ export default function Home() {
                   setError(null);
                 }}
                 aria-label="Bersihkan"
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                className="shrink-0 rounded-lg px-2 py-2 text-sm text-zinc-600 transition-colors hover:text-zinc-300"
               >
                 ✕
               </button>
-            )}
-          </div>
-        </div>
-        {showInvalidHint && (
-          <p className="text-sm text-red-600">
-            URL harus link YouTube (youtube.com, youtu.be, /shorts, /embed, /live).
-          </p>
-        )}
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex gap-2" role="tablist" aria-label="Format">
-            {(
-              [
-                { id: "mp4", label: "🎬 Video MP4" },
-                { id: "mp3", label: "🎵 Audio MP3" },
-              ] as const
-            ).map((o) => (
+            ) : (
               <button
-                key={o.id}
                 type="button"
-                role="tab"
-                aria-selected={kind === o.id}
-                onClick={() => setKind(o.id)}
-                className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium sm:flex-none ${
-                  kind === o.id
-                    ? "border-red-600 bg-red-600 text-white"
-                    : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                }`}
+                onClick={handlePaste}
+                className="shrink-0 rounded-lg px-2.5 py-2 text-[13px] text-zinc-500 transition-colors hover:text-zinc-200"
               >
-                {o.label}
+                tempel
               </button>
-            ))}
+            )}
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={!valid || loading}
+              aria-label="Proses"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950 transition-all hover:bg-white disabled:opacity-20"
+            >
+              {loading ? (
+                <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                  <path d="M21 12a9 9 0 1 1-6.2-8.56" />
+                </svg>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+              )}
+            </button>
           </div>
 
-          {kind === "mp4" ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs opacity-60">Maksimal:</span>
-              {VIDEO_QUALITIES.map((q) => {
-                const opt = data ? pickLocal(data.videos, q) : null;
-                const missing = data && !data.videos.some((v) => Number.parseInt(v.quality, 10) >= Number.parseInt(q, 10));
-                return (
+          {/* mode + kualitas */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex rounded-full bg-white/[0.05] p-1 text-[13px]">
+              {(
+                [
+                  { id: "mp4", label: "video" },
+                  { id: "mp3", label: "audio" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setKind(o.id)}
+                  aria-pressed={kind === o.id}
+                  className={`rounded-full px-4 py-1.5 transition-all ${
+                    kind === o.id
+                      ? "bg-zinc-100 font-medium text-zinc-950"
+                      : "text-zinc-500 hover:text-zinc-200"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {kind === "mp4" && (
+              <div className="flex flex-wrap items-center gap-1">
+                {VIDEO_QUALITIES.map((q) => (
                   <button
                     key={q}
                     type="button"
                     onClick={() => handleQuality(q)}
-                    title={opt ? `${opt.quality} · ${opt.sizeText}${opt.hasAudio ? " · bersuara" : " · tanpa suara"}` : `${q}p`}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    className={`rounded-full px-2.5 py-1 font-mono text-[11px] transition-colors ${
                       videoQuality === q
-                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-black"
-                        : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                    } ${missing ? "opacity-40" : ""}`}
+                        ? "bg-white/10 text-zinc-100"
+                        : "text-zinc-600 hover:text-zinc-300"
+                    }`}
                   >
                     {q}p
                   </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-xs opacity-70">
-              MP3 dikonversi via penyedia (1 request) + metadata tetap diambil dari
-              host media — judul & pratinjau ikut tampil.
-            </p>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2.5 min-h-4 text-xs">
+            {showInvalidHint ? (
+              <p className="text-red-400/90">itu bukan tautan youtube yang valid.</p>
+            ) : error ? (
+              <p className="text-red-400/90">
+                {error.error}{" "}
+                <button type="button" onClick={handleDownload} className="underline underline-offset-2 hover:text-red-300">
+                  coba lagi
+                </button>
+              </p>
+            ) : loading ? (
+              <p className="text-zinc-600">mengambil pratinjau…</p>
+            ) : (
+              <p className="text-zinc-700">
+                {kind === "mp4"
+                  ? "ganti kualitas kapan pun — tidak makan kuota tambahan."
+                  : "audio dikonversi ke mp3, metadata tetap ditampilkan."}
+              </p>
+            )}
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={!valid || loading}
-          className="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {loading ? "Memproses… ⏳" : "Proses & Pratinjau"}
-        </button>
-        <p className="text-[11px] opacity-50">
-          1× Proses = 1 request kuota (MP3: 2×). Ganti kualitas MP4 setelah
-          pratinjau tidak memakan kuota.
-        </p>
-      </section>
-
-      {loading && (
-        <section className="grid animate-pulse gap-4 md:grid-cols-[2fr_1fr]">
-          <div className="aspect-video rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-          <div className="flex flex-col gap-2">
-            <div className="h-5 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
-            <div className="h-4 w-1/2 rounded bg-zinc-200 dark:bg-zinc-800" />
-            <div className="h-10 rounded bg-zinc-200 dark:bg-zinc-800" />
+        {loading && (
+          <div className="rise mt-6 flex flex-col gap-4">
+            <div className="aspect-video w-full animate-pulse rounded-2xl bg-white/[0.05]" />
+            <div className="flex flex-col gap-2">
+              <div className="h-4 w-3/4 animate-pulse rounded bg-white/[0.06]" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-white/[0.05]" />
+            </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {mutedPick && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-          ⚠️ Kualitas {data.download.quality} yang terpilih adalah{" "}
-          <strong>video-only (tanpa suara)</strong>. Pilih 360p untuk file
-          bersuara langsung, atau unduh trek audio di bawah dan gabungkan manual.
-        </p>
-      )}
-
-      {data && (
-        <div className="grid items-start gap-4 lg:grid-cols-[2fr_1fr]">
-          {/* Kolom kiri: pratinjau + daftar */}
-          <div className="flex min-w-0 flex-col gap-4">
-            <section className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+        {data && (
+          <div className="rise mt-6 flex flex-col">
+            {/* pratinjau */}
+            <div className="relative overflow-hidden rounded-2xl bg-white/[0.03]">
               {thumb ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumb} alt={data.meta.title} className="aspect-video w-full object-cover" />
+                <img src={thumb} alt="" className="aspect-video w-full object-cover" />
               ) : (
-                <div className="aspect-video w-full bg-zinc-100 dark:bg-zinc-900" />
+                <div className="aspect-video w-full bg-white/[0.04]" />
               )}
-              <div className="flex flex-col gap-3 p-4">
-                <h2 className="text-lg leading-snug font-semibold">{data.meta.title}</h2>
-                <div className="flex items-center gap-2.5">
-                  {avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatar} alt="" className="h-9 w-9 rounded-full" />
-                  ) : (
-                    <div className="h-9 w-9 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {data.meta.channel.name}{" "}
-                      {(data.meta.channel.isVerified || data.meta.channel.isVerifiedArtist) && (
-                        <span title="Terverifikasi">✓</span>
-                      )}
-                    </p>
-                    <p className="text-xs opacity-60">
-                      {data.meta.channel.handle} · {data.meta.channel.subscriberCountText}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5 text-xs">
-                  {[
-                    `⏱ ${formatDuration(data.meta.lengthSeconds)}`,
-                    `👁 ${formatCount(data.meta.viewCount)}`,
-                    `👍 ${formatCount(data.meta.likeCount)}`,
-                    `📅 ${data.meta.publishedTimeText}`,
-                    data.meta.commentCountText ? `💬 ${data.meta.commentCountText}` : "",
-                    data.meta.isLiveStream ? "🔴 Live" : "",
-                  ]
-                    .filter(Boolean)
-                    .map((chip) => (
-                      <span
-                        key={chip}
-                        className="rounded-full bg-zinc-100 px-2.5 py-1 dark:bg-zinc-900"
-                      >
-                        {chip}
-                      </span>
-                    ))}
-                </div>
-                {data.meta.music.length > 0 && (
-                  <p className="text-xs opacity-70">
-                    🎼 {data.meta.music[0].title} — {data.meta.music[0].artist}
-                    {data.meta.music[0].album ? ` · ${data.meta.music[0].album}` : ""}
-                  </p>
-                )}
-                {data.meta.description && (
-                  <div className="text-sm">
-                    <p className={`whitespace-pre-line opacity-80 ${showDesc ? "" : "line-clamp-3"}`}>
-                      {data.meta.description}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowDesc((s) => !s)}
-                      className="mt-1 text-xs font-medium text-red-600 hover:underline"
-                    >
-                      {showDesc ? "Tutup deskripsi" : "Lihat deskripsi"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
+              <span className="absolute right-3 bottom-3 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-zinc-200">
+                {formatDuration(data.meta.lengthSeconds)}
+              </span>
+            </div>
 
-            {kind === "mp4" && (
-              <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <h3 className="mb-1 text-sm font-semibold">
-                  Semua kualitas MP4 ({data.videos.length})
-                </h3>
-                <p className="mb-3 text-xs opacity-60">
-                  Unduh langsung per baris — tanpa request baru.
+            <div className="mt-4">
+              <h2 className="text-[16px] leading-snug font-medium tracking-tight text-zinc-100">
+                {data.meta.title}
+              </h2>
+              <div className="mt-2 flex items-center gap-2">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-white/10" />
+                )}
+                <p className="truncate text-[13px] text-zinc-400">
+                  {data.meta.channel.name}
+                  {(data.meta.channel.isVerified || data.meta.channel.isVerifiedArtist) && (
+                    <span className="ml-1 text-zinc-600">✓</span>
+                  )}
+                  <span className="text-zinc-600">
+                    {"  "}· {data.meta.channel.subscriberCountText}
+                  </span>
                 </p>
-                <ul className="flex flex-col gap-2">
-                  {data.videos.map((v) => (
-                    <li
-                      key={`${v.quality}-${v.width}-${v.size}`}
-                      className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
-                        data.download.downloadUrl === v.url
-                          ? "border-red-500 bg-red-50 dark:bg-red-950/30"
-                          : "border-zinc-200 dark:border-zinc-800"
-                      }`}
-                    >
-                      <span className="w-14 shrink-0 font-semibold">{v.quality}</span>
-                      <span className="hidden text-xs opacity-60 sm:inline">
-                        {v.width}×{v.height}
-                      </span>
-                      <span className="text-xs opacity-60">{v.sizeText}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                          v.hasAudio
-                            ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-                            : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                        }`}
-                      >
-                        {v.hasAudio ? "🔊 bersuara" : "🔇 tanpa suara"}
-                      </span>
-                      <a
-                        href={v.url}
-                        download
-                        className="ml-auto shrink-0 rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                      >
-                        Unduh
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              </div>
+              <p className="mt-1.5 text-xs text-zinc-600">{metaLine}</p>
+              {data.meta.description && (
+                <div className="mt-2 text-[13px] leading-relaxed text-zinc-500">
+                  <p className={`whitespace-pre-line ${showDesc ? "" : "line-clamp-2"}`}>
+                    {data.meta.description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowDesc((s) => !s)}
+                    className="mt-0.5 text-xs text-zinc-400 hover:text-zinc-200"
+                  >
+                    {showDesc ? "tutup" : "selengkapnya"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* unduhan utama */}
+            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 pl-4">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-zinc-200" title={data.download.filename}>
+                  {data.download.filename}
+                </p>
+                <p className="mt-0.5 font-mono text-[11px] text-zinc-600">
+                  {[data.download.quality, data.download.sizeText].filter(Boolean).join(" · ")}
+                  {kind === "mp4" && data.download.hasAudio === false && " · tanpa suara"}
+                </p>
+              </div>
+              <a
+                href={data.download.downloadUrl}
+                download={data.download.filename}
+                className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-100 px-5 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-white"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                unduh
+              </a>
+            </div>
+            <div className="mt-2 flex items-center gap-4 px-1 text-xs text-zinc-600">
+              <button type="button" onClick={() => handleCopy(data.download.downloadUrl)} className="transition-colors hover:text-zinc-300">
+                {copied ? "tersalin ✓" : "salin tautan"}
+              </button>
+              <a href={data.download.downloadUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-zinc-300">
+                buka tab baru
+              </a>
+              {expiry && <span className="ml-auto">kedaluwarsa ± {expiry}</span>}
+            </div>
+
+            {mutedPick && (
+              <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-4 py-3 text-[13px] leading-relaxed text-amber-200/80">
+                kualitas {data.download.quality} ini video-only, tanpa suara. pilih 360p untuk yang langsung bersuara, atau unduh trek audio di bawah.
+              </p>
             )}
 
-            <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-              <h3 className="mb-1 text-sm font-semibold">
-                Trek audio ({data.audios.length})
-              </h3>
-              <p className="mb-3 text-xs opacity-60">
-                Alternatif ringan — bisa diputar dulu sebelum diunduh.
-              </p>
-              <ul className="flex flex-col gap-2">
-                {data.audios.map((a) => (
-                  <li
-                    key={`${a.extension}-${a.size}`}
-                    className="flex flex-col gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold uppercase">
-                        .{a.extension}
-                      </span>
-                      <span className="text-xs opacity-60">{a.sizeText}</span>
-                      <a
-                        href={a.url}
-                        download
-                        className="ml-auto shrink-0 rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                      >
-                        Unduh
-                      </a>
-                    </div>
-                    <audio controls preload="none" src={a.url} className="h-8 w-full" />
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {/* semua kualitas */}
+            {kind === "mp4" && data.videos.length > 0 && (
+              <div className="mt-8">
+                <p className="mb-1 text-xs text-zinc-600">
+                  semua kualitas · {data.videos.length}
+                </p>
+                <ul className="divide-y divide-white/[0.06]">
+                  {data.videos.map((v) => {
+                    const active = data.download.downloadUrl === v.url;
+                    return (
+                      <li key={`${v.quality}-${v.width}-${v.size}`} className="flex items-center gap-3 py-2.5 text-sm">
+                        <span className={`w-12 shrink-0 font-mono text-[13px] ${active ? "text-zinc-100" : "text-zinc-300"}`}>
+                          {v.quality}
+                        </span>
+                        <span className="hidden font-mono text-[11px] text-zinc-700 sm:inline">
+                          {v.width}×{v.height}
+                        </span>
+                        <span className="font-mono text-[11px] text-zinc-600">{v.sizeText}</span>
+                        <span className={`flex items-center gap-1.5 text-[11px] ${v.hasAudio ? "text-zinc-500" : "text-zinc-700"}`}>
+                          <span className={`inline-block h-1.5 w-1.5 rounded-full ${v.hasAudio ? "bg-emerald-400/70" : "bg-zinc-700"}`} />
+                          {v.hasAudio ? "bersuara" : "tanpa suara"}
+                        </span>
+                        <a
+                          href={v.url}
+                          download
+                          className={`ml-auto shrink-0 rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                            active
+                              ? "bg-white/10 text-zinc-100"
+                              : "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200"
+                          }`}
+                        >
+                          unduh
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
-            <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-              <h3 className="mb-1 text-sm font-semibold">
-                Subtitle ({data.subtitles.length || "tidak ada"})
-              </h3>
-              {data.subtitles.length > 0 ? (
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {data.subtitles.map((s) => (
-                    <li key={s.code}>
-                      <a
-                        href={s.url}
-                        download={`subtitle-${data.meta.id}.${s.code}.xml`}
-                        className="block rounded-md border border-zinc-300 px-3 py-1.5 font-mono text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                      >
-                        {s.code} ⬇
-                      </a>
+            {/* audio */}
+            {data.audios.length > 0 && (
+              <div className="mt-8">
+                <p className="mb-1 text-xs text-zinc-600">
+                  trek audio · {data.audios.length}
+                </p>
+                <ul className="flex flex-col gap-3">
+                  {data.audios.map((a) => (
+                    <li key={`${a.extension}-${a.size}`} className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-mono text-xs text-zinc-300 uppercase">.{a.extension}</span>
+                        <span className="font-mono text-[11px] text-zinc-600">{a.sizeText}</span>
+                        <a
+                          href={a.url}
+                          download
+                          className="ml-auto shrink-0 rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                        >
+                          unduh
+                        </a>
+                      </div>
+                      <audio controls preload="none" src={a.url} className="h-8 w-full opacity-70" />
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="text-xs opacity-60">Video ini tidak menyediakan subtitle.</p>
-              )}
-            </section>
+              </div>
+            )}
 
+            {/* subtitle */}
+            <div className="mt-8">
+              <p className="mb-2 text-xs text-zinc-600">
+                subtitle{data.subtitles.length > 0 ? ` · ${data.subtitles.length}` : ""}
+              </p>
+              {data.subtitles.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {data.subtitles.map((s) => (
+                    <a
+                      key={s.code}
+                      href={s.url}
+                      download={`subtitle-${data.meta.id}.${s.code}.xml`}
+                      className="rounded-lg bg-white/[0.05] px-3 py-1.5 font-mono text-[11px] text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
+                    >
+                      {s.code}
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-700">tidak ada subtitle untuk video ini.</p>
+              )}
+            </div>
+
+            {/* terkait */}
             {data.related.length > 0 && (
-              <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <h3 className="mb-3 text-sm font-semibold">Video terkait</h3>
-                <ul className="grid gap-3 sm:grid-cols-2">
+              <div className="mt-8">
+                <p className="mb-1 text-xs text-zinc-600">terkait</p>
+                <ul className="flex flex-col">
                   {data.related.map((r) => (
                     <li key={r.id}>
                       <button
                         type="button"
                         onClick={() => handleRelated(r.id)}
-                        className="group flex w-full gap-2.5 text-left"
+                        className="group flex w-full items-center gap-3 rounded-xl py-2 text-left transition-colors hover:bg-white/[0.03]"
                       >
                         {r.thumbnail ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -624,162 +640,87 @@ export default function Home() {
                             src={r.thumbnail}
                             alt=""
                             loading="lazy"
-                            className="aspect-video w-32 shrink-0 rounded-lg object-cover"
+                            className="aspect-video w-28 shrink-0 rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="aspect-video w-32 shrink-0 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                          <div className="aspect-video w-28 shrink-0 rounded-lg bg-white/[0.05]" />
                         )}
                         <span className="min-w-0">
-                          <span className="line-clamp-2 text-xs font-medium group-hover:underline">
+                          <span className="line-clamp-2 text-[13px] leading-snug text-zinc-300 group-hover:text-zinc-100">
                             {r.title}
                           </span>
-                          <span className="mt-1 block text-[11px] opacity-60">
-                            {r.channelName}
+                          <span className="mt-1 block truncate text-[11px] text-zinc-600">
+                            {[r.channelName, r.viewCountText, r.publishedTimeText].filter(Boolean).join(" · ")}
                           </span>
-                          <span className="block text-[11px] opacity-60">
-                            {[r.lengthText, r.viewCountText, r.publishedTimeText]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono text-[11px] text-zinc-700">
+                          {r.lengthText}
                         </span>
                       </button>
                     </li>
                   ))}
                 </ul>
-              </section>
+              </div>
             )}
           </div>
+        )}
 
-          {/* Kolom kanan: unduhan utama */}
-          <aside className="flex flex-col gap-3 lg:sticky lg:top-4">
-            <section className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold tracking-wide uppercase opacity-60">
-                {kind === "mp4" ? "Unduhan utama" : "Hasil konversi MP3"}
-              </p>
-              <p className="truncate text-sm font-medium" title={data.download.filename}>
-                {data.download.filename}
-              </p>
-              <div className="flex flex-wrap gap-1.5 text-xs opacity-70">
-                {data.download.quality && <span>🎞 {data.download.quality}</span>}
-                {data.download.sizeText && <span>· 💾 {data.download.sizeText}</span>}
-                {kind === "mp4" && data.download.hasAudio !== undefined && (
-                  <span>· {data.download.hasAudio ? "🔊 bersuara" : "🔇 tanpa suara"}</span>
-                )}
-              </div>
-              <a
-                href={data.download.downloadUrl}
-                download={data.download.filename}
-                className="mt-1 rounded-md bg-red-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-red-700"
+        {/* riwayat */}
+        {!loading && history.length > 0 && (
+          <div className="rise mt-10">
+            <div className="mb-1 flex items-center">
+              <p className="text-xs text-zinc-600">terakhir diproses</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistory([]);
+                  try {
+                    localStorage.removeItem(HISTORY_KEY);
+                  } catch {
+                    /* abaikan */
+                  }
+                }}
+                className="ml-auto text-[11px] text-zinc-700 transition-colors hover:text-zinc-400"
               >
-                ⬇ Unduh {kind === "mp4" ? (data.download.quality ?? "") : "MP3"}
-              </a>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCopy(data.download.downloadUrl)}
-                  className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                >
-                  {copied ? "✓ Tersalin" : "Salin link"}
-                </button>
-                <a
-                  href={data.download.downloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-center text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                >
-                  Buka tab baru
-                </a>
-              </div>
-              {expiry && (
-                <p className="text-[11px] opacity-50">
-                  ⏳ Link kedaluwarsa ± {expiry}. Klik Proses ulang jika mati.
-                </p>
-              )}
-            </section>
-
-            {history.length > 0 && (
-              <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <div className="mb-2 flex items-center">
-                  <h3 className="text-xs font-semibold tracking-wide uppercase opacity-60">
-                    Terakhir diproses
-                  </h3>
+                hapus
+              </button>
+            </div>
+            <ul className="flex flex-col">
+              {history.map((h) => (
+                <li key={h.id}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setHistory([]);
-                      try {
-                        localStorage.removeItem(HISTORY_KEY);
-                      } catch {
-                        /* abaikan */
-                      }
-                    }}
-                    className="ml-auto text-[11px] opacity-50 hover:underline"
+                    onClick={() => handleRelated(h.id)}
+                    className="group flex w-full items-center gap-3 rounded-xl py-2 text-left transition-colors hover:bg-white/[0.03]"
                   >
-                    Hapus
+                    {h.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={h.thumbnail} alt="" loading="lazy" className="h-10 w-[72px] shrink-0 rounded-md object-cover" />
+                    ) : (
+                      <div className="h-10 w-[72px] shrink-0 rounded-md bg-white/[0.05]" />
+                    )}
+                    <span className="line-clamp-1 min-w-0 flex-1 text-[13px] text-zinc-500 group-hover:text-zinc-200">
+                      {h.title}
+                    </span>
                   </button>
-                </div>
-                <ul className="flex flex-col gap-2">
-                  {history.map((h) => (
-                    <li key={h.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleRelated(h.id)}
-                        className="flex w-full items-center gap-2 text-left"
-                      >
-                        {h.thumbnail ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={h.thumbnail} alt="" loading="lazy" className="h-9 w-16 rounded object-cover" />
-                        ) : (
-                          <div className="h-9 w-16 rounded bg-zinc-200 dark:bg-zinc-800" />
-                        )}
-                        <span className="line-clamp-2 min-w-0 flex-1 text-xs">{h.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </aside>
-        </div>
-      )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {!data && !loading && (
-        <section className="grid gap-3 sm:grid-cols-3">
-          {[
-            { t: "1. Tempel link", d: "Mendukung watch, youtu.be, shorts, embed, live." },
-            { t: "2. Nilai pratinjau", d: "Durasi, views, channel, deskripsi, semua ukuran file." },
-            { t: "3. Pilih yang pas", d: "MP4 bersuara, audio saja, subtitle, atau video terkait." },
-          ].map((s) => (
-            <div
-              key={s.t}
-              className="rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800"
-            >
-              <p className="font-semibold">{s.t}</p>
-              <p className="mt-1 text-xs opacity-60">{s.d}</p>
-            </div>
-          ))}
-        </section>
-      )}
+        {!data && !loading && history.length === 0 && (
+          <p className="mt-10 text-center font-mono text-[11px] text-zinc-700">
+            watch · youtu.be · shorts · embed · live
+          </p>
+        )}
 
-      {error && (
-        <section className="flex flex-col gap-2 rounded-xl border border-red-300 p-4 text-sm dark:border-red-800">
-          <p className="text-red-600 dark:text-red-400">{error.error}</p>
-          {error.code && <p className="font-mono text-xs opacity-70">{error.code}</p>}
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={!valid || loading}
-            className="self-start rounded-md border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          >
-            Coba lagi
-          </button>
-        </section>
-      )}
-
-      <footer className="mt-auto pt-6 text-xs opacity-60">
-        Hanya unduh konten publik/bebas. Pengguna bertanggung jawab atas isi yang
-        diunduh. Link unduhan bersifat sementara dari penyedia.
-      </footer>
-    </main>
+        <footer className="mt-auto pt-16 text-center text-[11px] leading-relaxed text-zinc-700">
+          hanya untuk konten publik yang bebas diunduh.
+          <br />
+          kamu bertanggung jawab atas apa yang disimpan.
+        </footer>
+      </main>
+    </div>
   );
 }
