@@ -40,6 +40,8 @@ interface Details {
     sizeText: string;
     hasAudio: boolean;
     mimeType: string;
+    codec: string;
+    fps: number;
   }[];
   audios: {
     url: string;
@@ -376,7 +378,7 @@ export default function Home() {
                 </p>
                 <ul className="divide-y divide-white/[0.06]">
                   {data.videos.map((v) => (
-                      <li key={`${v.quality}-${v.width}-${v.size}`} className="flex items-center gap-3 py-2.5 text-sm">
+                      <li key={`${v.quality}-${v.width}-${v.codec}-${v.hasAudio}-${v.size}`} className="flex items-center gap-3 py-2.5 text-sm">
                         <span className="w-12 shrink-0 font-mono text-[13px] text-zinc-300">
                           {v.quality}
                         </span>
@@ -384,6 +386,14 @@ export default function Home() {
                           {v.width}×{v.height}
                         </span>
                         <span className="font-mono text-[11px] text-zinc-600">{v.sizeText}</span>
+                        {v.codec && (
+                          <span className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">
+                            {v.codec}
+                          </span>
+                        )}
+                        {v.fps > 0 && (
+                          <span className="font-mono text-[11px] text-zinc-700">{v.fps}fps</span>
+                        )}
                         <span className={`flex items-center gap-1.5 text-[11px] ${v.hasAudio ? "text-zinc-500" : "text-zinc-700"}`}>
                           <span className={`inline-block h-1.5 w-1.5 rounded-full ${v.hasAudio ? "bg-emerald-400/70" : "bg-zinc-700"}`} />
                           {v.hasAudio ? "bersuara" : "tanpa suara"}
@@ -574,6 +584,22 @@ export default function Home() {
                 hanya video publik yang tidak dibatasi umur, wilayah, atau login. video privat, premiere yang belum tayang, dan konten yang dibatasi tidak bisa diproses.
               </p>
             </details>
+            <details className="group rounded-xl bg-white/[0.03] px-4 py-3">
+              <summary className="cursor-pointer list-none text-[13px] text-zinc-300 transition-colors hover:text-zinc-100 [&::-webkit-details-marker]:hidden">
+                kenapa kualitas sama tapi ukurannya beda?
+              </summary>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500">
+                walau sama-sama 720p, isinya bisa beda codec (avc1, vp9, av1 — makin modern makin kecil ukurannya untuk ketajaman yang setara), beda fps (30 vs 60), atau ada yang sudah menggabung audio sehingga lebih besar. semua daftar di sini mp4 — bandingkan saja label codec, fps, dan penanda bersuara di tiap baris.
+              </p>
+            </details>
+            <details className="group rounded-xl bg-white/[0.03] px-4 py-3">
+              <summary className="cursor-pointer list-none text-[13px] text-zinc-300 transition-colors hover:text-zinc-100 [&::-webkit-details-marker]:hidden">
+                kenapa muncul kuota habis?
+              </summary>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500">
+                setiap proses memakan jatah request dari rapidapi tier gratis, dan jatahnya terbatas per bulan. kalau habis, tunggu reset kuota lalu coba lagi — tidak ada yang perlu diubah dari sisimu.
+              </p>
+            </details>
           </div>
         </div>
 
@@ -604,6 +630,34 @@ export default function Home() {
           </span>
         </footer>
       </main>
+      {error?.code === "rapidapi-quota" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5"
+          onClick={() => setError(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Kuota API habis"
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-950 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[15px] font-semibold tracking-tight text-zinc-100">
+              kuota api habis.
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
+              situs ini memakai tier gratis rapidapi yang jatah request-nya terbatas per bulan. tunggu reset kuota lalu coba lagi — tidak ada yang rusak dari link atau videomu.
+            </p>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="mt-4 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-white"
+            >
+              mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -57,6 +57,8 @@ export interface VideoOption {
   sizeText: string;
   hasAudio: boolean;
   mimeType: string;
+  codec: string;
+  fps: number;
 }
 
 export interface AudioOption {
@@ -150,6 +152,22 @@ function bool(v: unknown): boolean {
   return v === true;
 }
 
+/** Nama pendek codec dari field eksplisit atau `codecs="…"` di mimeType. */
+function shortCodec(explicit: unknown, mimeType: string): string {
+  const raw =
+    (typeof explicit === "string" && explicit) ||
+    (/codecs="([^"]+)"/.exec(mimeType)?.[1] ?? "");
+  const first = raw.split(",")[0].trim().toLowerCase();
+  if (!first) return "";
+  if (first.startsWith("avc")) return "avc1";
+  if (first.startsWith("vp09") || first.startsWith("vp9")) return "vp9";
+  if (first.startsWith("av01")) return "av1";
+  if (first.startsWith("hev") || first.startsWith("hvc")) return "hevc";
+  if (first.startsWith("mp4a")) return "mp4a";
+  if (first.startsWith("opus")) return "opus";
+  return first.slice(0, 8);
+}
+
 
 function thumbs(v: unknown): Thumb[] {
   if (!Array.isArray(v)) return [];
@@ -233,12 +251,15 @@ async function fetchDetails(
       sizeText: str(f.sizeText),
       hasAudio: bool(f.hasAudio),
       mimeType: str(f.mimeType),
+      codec: shortCodec(f.codec ?? f.codecs, str(f.mimeType)),
+      fps: num(f.fps),
     }))
     .sort(
       (a, b) =>
         Number.parseInt(b.quality, 10) - Number.parseInt(a.quality, 10) ||
         Number(b.hasAudio) - Number(a.hasAudio) ||
-        b.size - a.size,
+        b.size - a.size ||
+        (a.codec < b.codec ? -1 : a.codec > b.codec ? 1 : 0),
     );
 
   const audios: AudioOption[] = (rawAudios as Record<string, unknown>[])
