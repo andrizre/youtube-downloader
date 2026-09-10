@@ -2,16 +2,6 @@ import { NextResponse } from "next/server";
 import { ProviderError, resolveDownload } from "@/lib/rapidapi";
 import { extractVideoId, isYouTubeUrl } from "@/lib/youtube";
 
-const VIDEO_QUALITIES: Record<string, true> = {
-  max: true,
-  "2160": true,
-  "1440": true,
-  "1080": true,
-  "720": true,
-  "480": true,
-  "360": true,
-};
-
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
 const hits = new Map<string, number[]>();
@@ -50,16 +40,10 @@ export async function POST(req: Request) {
   }
   body ??= {};
 
-  const { url, kind, videoQuality = "1080" } = body;
+  const { url } = body;
 
   if (typeof url !== "string" || !isYouTubeUrl(url)) {
     return badRequest("URL harus link YouTube");
-  }
-  if (kind !== "mp3" && kind !== "mp4") {
-    return badRequest("Format harus mp3 atau mp4");
-  }
-  if (typeof videoQuality !== "string" || !VIDEO_QUALITIES[videoQuality]) {
-    return badRequest("Kualitas video tidak valid");
   }
   const videoId = extractVideoId(url);
   if (!videoId) {
@@ -67,11 +51,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await resolveDownload({
-      videoId,
-      kind,
-      videoQuality,
-    });
+    const result = await resolveDownload({ videoId });
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
     if (err instanceof ProviderError) {

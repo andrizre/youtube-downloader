@@ -84,15 +84,6 @@ export interface RelatedVideo {
   thumbnail: string;
 }
 
-export interface DownloadTarget {
-  downloadUrl: string;
-  filename: string;
-  quality?: string;
-  sizeText?: string;
-  hasAudio?: boolean;
-  expiresAt?: number;
-}
-
 export interface DetailsResult {
   meta: VideoMeta;
   videos: VideoOption[];
@@ -100,27 +91,21 @@ export interface DetailsResult {
   subtitles: SubtitleOption[];
   related: RelatedVideo[];
   expiresAt: number;
-  download: DownloadTarget;
 }
 
 interface ResolveInput {
   videoId: string;
-  kind: "mp3" | "mp4";
-  videoQuality: string;
 }
 
-// MP3: "YouTube MP3" (ytjar) — GET /dl?id= → { status: "ok", link, title }.
-// MP4: "YouTube Media Downloader" (DataFanatic, host youtube-media-downloader.p.rapidapi.com)
+// "YouTube Media Downloader" (DataFanatic, host youtube-media-downloader.p.rapidapi.com)
 //   — GET /v2/video/details?videoId=&urlAccess=normal&videos=auto&audios=auto
 //   → { errorId, title, description, channel{…}, lengthSeconds, viewCount,
 //        likeCount, publishedTime*, commentCountText, thumbnails[],
 //        musicCredits[], videos{items[],expiration}, audios{items[],expiration},
 //        subtitles{items[{code,url}]}, related{items[]} }.
 // Satu panggilan details mengembalikan SEMUA yang UI butuhkan: metadata,
-// daftar kualitas MP4 (dengan size + penanda bersuara), trek audio,
-// subtitle, dan video terkait. Jadi frontend cukup fetch sekali lalu
-// ganti kualitas/format secara lokal tanpa menghabiskan kuota.
-const MP3_HOST = "youtube-mp36.p.rapidapi.com";
+// daftar kualitas video (dengan size + penanda bersuara), trek audio,
+// subtitle, dan video terkait.
 const MEDIA_HOST = "youtube-media-downloader.p.rapidapi.com";
 const TIMEOUT_MS = 25000;
 
@@ -165,13 +150,6 @@ function bool(v: unknown): boolean {
   return v === true;
 }
 
-function cleanTitle(raw: unknown, fallback: string): string {
-  const t =
-    typeof raw === "string"
-      ? raw.replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 120)
-      : "";
-  return t || fallback;
-}
 
 function thumbs(v: unknown): Thumb[] {
   if (!Array.isArray(v)) return [];
@@ -374,33 +352,6 @@ function buildRelated(json: Record<string, unknown>): RelatedVideo[] {
     });
 }
 
-function pickMp4(
-  videos: VideoOption[],
-  videoQuality: string,
-): VideoOption {
-  const height = (label: string) => Number.parseInt(label, 10);
-  const parsed = Number.parseInt(videoQuality, 10);
-  const cap =
-    videoQuality === "max" || Number.isNaN(parsed) ? Infinity : parsed;
-  // Hanya 360p yang progresif (ada audio). Kualitas di atasnya video-only
-  // (tanpa suara), jadi utamakan file bersuara dalam batas kualitas.
-  const withinCap = videos.filter((f) => height(f.quality) <= cap);
-  const withAudio = (list: VideoOption[]) => list.filter((f) => f.hasAudio);
-  const pool =
-    withAudio(withinCap).length > 0
-      ? withAudio(withinCap)
-      : withinCap.length > 0
-        ? withinCap
-        : withAudio(videos).length > 0
-          ? withAudio(videos)
-          : videos;
-  let best = pool[0];
-  for (const f of pool) {
-    if (height(f.quality) > height(best.quality)) best = f;
-  }
-  return best;
-}
-
 export async function resolveDownload(
   input: ResolveInput,
 ): Promise<DetailsResult> {
@@ -413,55 +364,5 @@ export async function resolveDownload(
   );
   const meta = buildMeta(input.videoId, json);
   const related = buildRelated(json);
-
-  if (input.kind === "mp3") {
-    const dl = await fetchVendor(
-      `https://${MP3_HOST}/dl?id=${input.videoId}`,
-      apiKey,
-      MP3_HOST,
-    );
-    if (dl.status !== "ok" || typeof dl.link !== "string") {
-      throw new ProviderError(
-        "youtube-convert-failed",
-        typeof dl.msg === "string" ? dl.msg : "Gagal konversi MP3",
-      );
-    }
-    const filename = `${cleanTitle(meta.title !== input.videoId ? meta.title : dl.title, input.videoId)}.mp3`;
-    return {
-      meta,
-      videos,
-      audios,
-      subtitles,
-      related,
-      expiresAt,
-      download: { downloadUrl: dl.link, filename, expiresAt },
-    };
-  }
-
-  const best = pickMp4(videos, input.videoQuality);
-  return {
-    meta,
-    videos,
-    audios,
-    subtitles,
-    related,
-    expiresAt,
-    download: {
-      downloadUrl: best.url,
-      filename: `${cleanTitle(meta.title, input.videoId)}.mp4`,
-      quality: best.quality,
-      sizeText: best.sizeText,
-      hasAudio: best.hasAudio,
-      expiresAt,
-    },
-  };
-}
-
-/** Pilih ulang rekomendasi MP4 murni dari data yang sudah ada (tanpa kuota). */
-export function pickMp4Local(
-  videos: VideoOption[],
-  videoQuality: string,
-): VideoOption | null {
-  if (videos.length === 0) return null;
-  return pickMp4(videos, videoQuality);
+  return { meta, videos, audios, subtitles, related, expiresAt };
 }

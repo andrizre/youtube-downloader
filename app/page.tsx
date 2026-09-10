@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { extractVideoId, isYouTubeUrl } from "@/lib/youtube";
+import { useEffect, useState } from "react";
+import { isYouTubeUrl } from "@/lib/youtube";
 
 interface Thumb {
   url: string;
@@ -59,14 +59,6 @@ interface Details {
     thumbnail: string;
   }[];
   expiresAt: number;
-  download: {
-    downloadUrl: string;
-    filename: string;
-    quality?: string;
-    sizeText?: string;
-    hasAudio?: boolean;
-    expiresAt?: number;
-  };
 }
 
 interface HistoryEntry {
@@ -75,7 +67,6 @@ interface HistoryEntry {
   thumbnail: string;
 }
 
-const VIDEO_QUALITIES = ["2160", "1440", "1080", "720", "480", "360"];
 const HISTORY_KEY = "yt-dl-history";
 
 function biggest(thumbs: Thumb[]): string {
@@ -108,53 +99,20 @@ function formatDuration(total: number): string {
   return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
 }
 
-/** Rekomendasi lokal dari daftar yang sudah ada — tanpa request baru (hemat kuota). */
-function pickLocal(
-  videos: Details["videos"],
-  want: string,
-): Details["videos"][number] | null {
-  if (videos.length === 0) return null;
-  const heightOf = (q: string) => Number.parseInt(q, 10);
-  const cap = Number.isNaN(Number.parseInt(want, 10))
-    ? Infinity
-    : Number.parseInt(want, 10);
-  const within = videos.filter((v) => heightOf(v.quality) <= cap);
-  const audible = (list: Details["videos"]) => list.filter((v) => v.hasAudio);
-  const pool =
-    audible(within).length > 0
-      ? audible(within)
-      : within.length > 0
-        ? within
-        : audible(videos).length > 0
-          ? audible(videos)
-          : videos;
-  let best = pool[0];
-  for (const v of pool) {
-    if (heightOf(v.quality) > heightOf(best.quality)) best = v;
-  }
-  return best;
-}
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [kind, setKind] = useState<"mp3" | "mp4">("mp4");
-  const [videoQuality, setVideoQuality] = useState("1080");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Details | null>(null);
   const [error, setError] = useState<{ error: string; code?: string } | null>(
     null,
   );
   const [showDesc, setShowDesc] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const trimmed = url.trim();
   const valid = trimmed.length > 0 && isYouTubeUrl(trimmed);
   const showInvalidHint = trimmed.length > 0 && !isYouTubeUrl(trimmed);
-  const videoId = useMemo(
-    () => (valid ? extractVideoId(trimmed) : null),
-    [trimmed, valid],
-  );
 
   useEffect(() => {
     try {
@@ -180,7 +138,7 @@ export default function Home() {
     });
   }
 
-  async function run(targetUrl: string, targetKind: typeof kind, targetQ: string) {
+  async function run(targetUrl: string) {
     if (loading) return;
     setLoading(true);
     setData(null);
@@ -190,7 +148,7 @@ export default function Home() {
       const res = await fetch("/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: targetUrl, kind: targetKind, videoQuality: targetQ }),
+        body: JSON.stringify({ url: targetUrl }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -209,35 +167,15 @@ export default function Home() {
 
   function handleDownload() {
     if (!valid || loading) return;
-    run(trimmed, kind, videoQuality);
+    run(trimmed);
   }
 
   function handleRelated(id: string) {
     const next = `https://www.youtube.com/watch?v=${id}`;
     setUrl(next);
-    run(next, kind, videoQuality);
+    run(next);
   }
 
-  /** Ganti kualitas MP4 tanpa request baru kalau datanya sudah ada. */
-  function handleQuality(q: string) {
-    setVideoQuality(q);
-    if (data && kind === "mp4" && data.meta.id === videoId) {
-      const best = pickLocal(data.videos, q);
-      if (best) {
-        setData({
-          ...data,
-          download: {
-            downloadUrl: best.url,
-            filename: data.download.filename,
-            quality: best.quality,
-            sizeText: best.sizeText,
-            hasAudio: best.hasAudio,
-            expiresAt: data.expiresAt,
-          },
-        });
-      }
-    }
-  }
 
   async function handlePaste() {
     try {
@@ -248,29 +186,11 @@ export default function Home() {
     }
   }
 
-  async function handleCopy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* abaikan */
-    }
-  }
 
   const thumb = data ? biggest(data.meta.thumbnails) : "";
   const avatar = data?.meta.channel.avatar.length
     ? biggest(data.meta.channel.avatar)
     : "";
-  const mutedPick =
-    data && kind === "mp4" && data.download.hasAudio === false;
-  const expiry =
-    data?.expiresAt && data.expiresAt > 0
-      ? new Date(data.expiresAt * 1000).toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "";
   const metaLine = data
     ? [
         formatDuration(data.meta.lengthSeconds),
@@ -287,9 +207,9 @@ export default function Home() {
       <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-6">
         <p className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-100" />
-          unduh
+          {"&rizre"}
         </p>
-        <p className="text-xs text-zinc-600">youtube · mp4 / mp3</p>
+        <p className="text-xs text-zinc-600">youtube · semua kualitas</p>
       </header>
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 pt-14 pb-20 sm:pt-20">
@@ -367,49 +287,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* mode + kualitas */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <div className="flex rounded-full bg-white/[0.05] p-1 text-[13px]">
-              {(
-                [
-                  { id: "mp4", label: "video" },
-                  { id: "mp3", label: "audio" },
-                ] as const
-              ).map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => setKind(o.id)}
-                  aria-pressed={kind === o.id}
-                  className={`rounded-full px-4 py-1.5 transition-all ${
-                    kind === o.id
-                      ? "bg-zinc-100 font-medium text-zinc-950"
-                      : "text-zinc-500 hover:text-zinc-200"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            {kind === "mp4" && (
-              <div className="flex flex-wrap items-center gap-1">
-                {VIDEO_QUALITIES.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => handleQuality(q)}
-                    className={`rounded-full px-2.5 py-1 font-mono text-[11px] transition-colors ${
-                      videoQuality === q
-                        ? "bg-white/10 text-zinc-100"
-                        : "text-zinc-600 hover:text-zinc-300"
-                    }`}
-                  >
-                    {q}p
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           <div className="mt-2.5 min-h-4 text-xs">
             {showInvalidHint ? (
@@ -423,13 +300,7 @@ export default function Home() {
               </p>
             ) : loading ? (
               <p className="text-zinc-600">mengambil pratinjau…</p>
-            ) : (
-              <p className="text-zinc-700">
-                {kind === "mp4"
-                  ? "ganti kualitas kapan pun — tidak makan kuota tambahan."
-                  : "audio dikonversi ke mp3, metadata tetap ditampilkan."}
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -496,54 +367,17 @@ export default function Home() {
               )}
             </div>
 
-            {/* unduhan utama */}
-            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 pl-4">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-zinc-200" title={data.download.filename}>
-                  {data.download.filename}
-                </p>
-                <p className="mt-0.5 font-mono text-[11px] text-zinc-600">
-                  {[data.download.quality, data.download.sizeText].filter(Boolean).join(" · ")}
-                  {kind === "mp4" && data.download.hasAudio === false && " · tanpa suara"}
-                </p>
-              </div>
-              <a
-                href={data.download.downloadUrl}
-                download={data.download.filename}
-                className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-100 px-5 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-white"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                unduh
-              </a>
-            </div>
-            <div className="mt-2 flex items-center gap-4 px-1 text-xs text-zinc-600">
-              <button type="button" onClick={() => handleCopy(data.download.downloadUrl)} className="transition-colors hover:text-zinc-300">
-                {copied ? "tersalin ✓" : "salin tautan"}
-              </button>
-              <a href={data.download.downloadUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-zinc-300">
-                buka tab baru
-              </a>
-              {expiry && <span className="ml-auto">kedaluwarsa ± {expiry}</span>}
-            </div>
-
-            {mutedPick && (
-              <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-4 py-3 text-[13px] leading-relaxed text-amber-200/80">
-                kualitas {data.download.quality} ini video-only, tanpa suara. pilih 360p untuk yang langsung bersuara, atau unduh trek audio di bawah.
-              </p>
-            )}
 
             {/* semua kualitas */}
-            {kind === "mp4" && data.videos.length > 0 && (
+            {data.videos.length > 0 && (
               <div className="mt-8">
                 <p className="mb-1 text-xs text-zinc-600">
                   semua kualitas · {data.videos.length}
                 </p>
                 <ul className="divide-y divide-white/[0.06]">
-                  {data.videos.map((v) => {
-                    const active = data.download.downloadUrl === v.url;
-                    return (
+                  {data.videos.map((v) => (
                       <li key={`${v.quality}-${v.width}-${v.size}`} className="flex items-center gap-3 py-2.5 text-sm">
-                        <span className={`w-12 shrink-0 font-mono text-[13px] ${active ? "text-zinc-100" : "text-zinc-300"}`}>
+                        <span className="w-12 shrink-0 font-mono text-[13px] text-zinc-300">
                           {v.quality}
                         </span>
                         <span className="hidden font-mono text-[11px] text-zinc-700 sm:inline">
@@ -557,17 +391,12 @@ export default function Home() {
                         <a
                           href={v.url}
                           download
-                          className={`ml-auto shrink-0 rounded-lg px-3 py-1.5 text-xs transition-colors ${
-                            active
-                              ? "bg-white/10 text-zinc-100"
-                              : "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200"
-                          }`}
+                          className="ml-auto shrink-0 rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
                         >
                           unduh
                         </a>
                       </li>
-                    );
-                  })}
+                  ))}
                 </ul>
               </div>
             )}
@@ -715,10 +544,20 @@ export default function Home() {
           </p>
         )}
 
-        <footer className="mt-auto pt-16 text-center text-[11px] leading-relaxed text-zinc-700">
+        <footer className="mt-auto flex flex-col items-center pt-16 text-center text-[11px] leading-relaxed text-zinc-700">
           hanya untuk konten publik yang bebas diunduh.
           <br />
           kamu bertanggung jawab atas apa yang disimpan.
+          <a
+            href="https://github.com/andrizre"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="GitHub andrizre"
+            className="mt-3 inline-flex items-center gap-1.5 text-zinc-600 transition-colors hover:text-zinc-200"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+            <span className="font-mono">andrizre</span>
+          </a>
         </footer>
       </main>
     </div>
